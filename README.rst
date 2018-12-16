@@ -63,7 +63,7 @@ so it should be easy for you to install it.
 Arch Linux installation
 -----------------------
 
-On Arch Linux you can find GNOME-Keysign in the AUR.
+On Arch Linux you can find GNOME-Keysign in the `AUR <https://aur.archlinux.org/packages/gnome-keysign/>`_.
 For example you can install it with:
 
 .. code::
@@ -80,7 +80,7 @@ so it should be easy for you to install it.
 If your version is older than that,
 this list of packages seems to make it work:
 
-    python  python-lxml  avahi-daemon  python-avahi python-gi  gir1.2-glib-2.0   gir1.2-gtk-3.0 python-dbus    gir1.2-gstreamer-1.0 gir1.2-gst-plugins-base-1.0 gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-gtk3  python-gi-cairo python-gpg  python-twisted python-future
+    python  python-lxml  avahi-daemon  python-gi  gir1.2-glib-2.0   gir1.2-gtk-3.0 python-dbus    gir1.2-gstreamer-1.0 gir1.2-gst-plugins-base-1.0 gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-gtk3  python-gi-cairo python-gpg  python-twisted python-future
 
 Magic Wormhole can be installed with pip:
 
@@ -97,7 +97,7 @@ gstreamer1.0-plugins-good provides the autovideosrc element.
 
 These packages should be optional:
 
-    python-requests monkeysign python-qrcode python-bluez
+    python-requests python-qrcode python-bluez
 
 
 Fedora dependencies
@@ -113,7 +113,7 @@ assuming that pip and git are already installed:
 
 .. code::
 
-    sudo dnf install -y python-lxml python-gobject python-avahi dbus-python gstreamer1-plugins-bad-free-gtk gstreamer1-plugins-good  gnupg python-gnupg  python-twisted
+    sudo dnf install -y python-lxml python-gobject dbus-python gstreamer1-plugins-bad-free-gtk gstreamer1-plugins-good  gnupg python-gnupg  python-twisted
     pip install magic-wormhole
 
 As optional:

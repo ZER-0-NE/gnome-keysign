@@ -23,7 +23,6 @@ import json
 import logging
 import os
 import shutil
-import requests
 from subprocess import call
 from string import Template
 from tempfile import NamedTemporaryFile
@@ -32,21 +31,25 @@ from xml.etree import ElementTree
 try:
     from urllib.parse import urlparse, parse_qs
     from urllib.parse import ParseResult
+    from urllib.parse import quote
 except ImportError:
     from urlparse import urlparse, parse_qs
     from urlparse import ParseResult
+    from urllib2 import quote
 
 import requests
 import dbus
 from wormhole._wordlist import PGPWordList
 from _dbus_bindings import BUS_DAEMON_NAME, BUS_DAEMON_PATH, BUS_DAEMON_IFACE
 import gi
+
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GLib
 
 from .errors import NoBluezDbus, UnpoweredAdapter, NoAdapter
 from .gpgmh import fingerprint_from_keydata
 from .gpgmh import sign_keydata_and_encrypt
+from .i18n import _
 
 log = logging.getLogger(__name__)
 
@@ -215,6 +218,20 @@ Thanks for letting me sign your key!
 --
 GNOME Keysign
 '''
+DIVIDER = '\n--------\nTranslated version below\n--------\n'
+BODY_TRANSLATED = _('''Hi $uid,
+
+
+I have just signed your key
+
+      $fingerprint
+
+
+Thanks for letting me sign your key!
+
+--
+GNOME Keysign
+''')
 
 
 def sign_keydata_and_send(keydata, error_cb=None):
@@ -266,8 +283,13 @@ def sign_keydata_and_send(keydata, error_cb=None):
         # resources. Calling tmpfile.close would get the file deleted.
         tmpfile.file.close()
 
+        body = BODY
+        # If the primary language is not English we append the translation
+        if BODY != BODY_TRANSLATED:
+            body += DIVIDER + BODY_TRANSLATED
+
         subject = Template(SUBJECT).safe_substitute(ctx)
-        body = Template(BODY).safe_substitute(ctx)
+        body = Template(body).safe_substitute(ctx)
         send_email(uid.email, subject, body, [filename])
         yield tmpfile
 
