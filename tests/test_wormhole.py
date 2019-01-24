@@ -18,18 +18,22 @@
 
 import os
 import logging
+from subprocess import check_call
+import tempfile
 import gi
 gi.require_version('Gtk', '3.0')
 
 from nose.twistedtools import deferred
 from nose.tools import *
-from wormhole.errors import WrongPasswordError
+from wormhole.errors import WrongPasswordError, LonelyError
 from twisted.internet.defer import inlineCallbacks
 
-from keysign.gpgmh import openpgpkey_from_data
+from keysign.gpgmeh import openpgpkey_from_data
+from keysign.gpgmeh import get_public_key_data
+from keysign.offer import Offer
+from keysign.util import mac_generate
 from keysign.wormholeoffer import WormholeOffer
 from keysign.wormholereceive import WormholeReceive
-from keysign.gpgmh import get_public_key_data
 
 
 log = logging.getLogger(__name__)
@@ -47,17 +51,23 @@ def get_fixture_file(fixture):
     return fname
 
 
-def read_fixture_file(fixture):
+def import_key_from_file(fixture, homedir):
     fname = get_fixture_file(fixture)
-    data = open(fname, 'rb').read()
-    return data
+    original = open(fname, 'rb').read()
+    gpgcmd = ["gpg", "--homedir={}".format(homedir)]
+    # Now we import a single key
+    check_call(gpgcmd + ["--import", fname])
+
+    return openpgpkey_from_data(original)
 
 
 @deferred(timeout=10)
 @inlineCallbacks
 def test_wrmhl():
-    data = read_fixture_file("seckey-no-pw-1.asc")
-    key = openpgpkey_from_data(data)
+    # This should be a new, empty directory
+    homedir = tempfile.mkdtemp()
+    os.environ["GNUPGHOME"] = homedir
+    key = import_key_from_file("seckey-no-pw-1.asc", homedir)
     file_key_data = get_public_key_data(key.fingerprint)
     log.info("Running with key %r", key)
     # Start offering the key
@@ -76,11 +86,13 @@ def test_wrmhl():
 @deferred(timeout=10)
 @inlineCallbacks
 def test_wrmhl_offline_code():
-    data = read_fixture_file("seckey-no-pw-1.asc")
-    key = openpgpkey_from_data(data)
+    # This should be a new, empty directory
+    homedir = tempfile.mkdtemp()
+    os.environ["GNUPGHOME"] = homedir
+    key = import_key_from_file("seckey-no-pw-1.asc", homedir)
     file_key_data = get_public_key_data(key.fingerprint)
     # We assume that this channel, at execution time, is free
-    code = "5556-penguin-paw-print"
+    code = u"5556-penguin-paw-print"
     # Start offering the key
     offer = WormholeOffer(key)
     offer.allocate_code(code)
@@ -97,8 +109,10 @@ def test_wrmhl_offline_code():
 @deferred(timeout=10)
 @inlineCallbacks
 def test_wrmhl_wrong_code():
-    data = read_fixture_file("seckey-no-pw-1.asc")
-    key = openpgpkey_from_data(data)
+    # This should be a new, empty directory
+    homedir = tempfile.mkdtemp()
+    os.environ["GNUPGHOME"] = homedir
+    key = import_key_from_file("seckey-no-pw-1.asc", homedir)
     log.info("Running with key %r", key)
     # Start offering the key
     offer = WormholeOffer(key)
@@ -112,3 +126,72 @@ def test_wrmhl_wrong_code():
     assert_is_not_none(message)
     assert_equal(message, WrongPasswordError)
 
+
+@deferred(timeout=10)
+@inlineCallbacks
+def test_wrmhl_wrong_hmac():
+    # This should be a new, empty directory
+    homedir = tempfile.mkdtemp()
+    os.environ["GNUPGHOME"] = homedir
+    key = import_key_from_file("seckey-no-pw-1.asc", homedir)
+    log.info("Running with key %r", key)
+    hmac = "wrong_hmac_eg_tampered_key"
+    # Start offering the key
+    offer = WormholeOffer(key)
+    info = yield offer.allocate_code()
+    code, _ = info
+    offer.start()
+    receive = WormholeReceive(code, mac=hmac)
+    msg_tuple = yield receive.start()
+    downloaded_key_data, success, message = msg_tuple
+    assert_false(success)
+    assert_is_not_none(message)
+    assert_equal(message, WrongPasswordError)
+
+
+@deferred(timeout=10)
+@inlineCallbacks
+def test_wrmhl_with_hmac():
+    # This should be a new, empty directory
+    homedir = tempfile.mkdtemp()
+    os.environ["GNUPGHOME"] = homedir
+    key = import_key_from_file("seckey-no-pw-1.asc", homedir)
+    file_key_data = get_public_key_data(key.fingerprint)
+    log.info("Running with key %r", key)
+    hmac = mac_generate(key.fingerprint.encode('ascii'), file_key_data)
+    # Start offering the key
+    offer = WormholeOffer(key)
+    info = yield offer.allocate_code()
+    code, _ = info
+    offer.start()
+    receive = WormholeReceive(code, mac=hmac)
+    msg_tuple = yield receive.start()
+    downloaded_key_data, success, _ = msg_tuple
+    assert_true(success)
+    log.info("Checking with key: %r", downloaded_key_data)
+    assert_equal(downloaded_key_data, file_key_data)
+
+
+@deferred(timeout=10)
+@inlineCallbacks
+def test_offer_cancel():
+
+    def _received(start_data):
+        success, message = start_data
+        assert_is_not_none(message)
+        assert_equal(type(message), LonelyError)
+
+    # This should be a new, empty directory
+    homedir = tempfile.mkdtemp()
+    os.environ["GNUPGHOME"] = homedir
+    key = import_key_from_file("seckey-no-pw-1.asc", homedir)
+    log.info("Running with key %r", key)
+    # Start offering the key
+    offer = Offer(key)
+    _ = yield offer.allocate_code(worm=True)
+
+    defers = offer.start()
+    for de in defers:
+        de.addCallback(_received)
+
+    offer.stop()

@@ -41,10 +41,10 @@ if  __name__ == "__main__" and __package__ is None:
 from .util import strip_fingerprint, download_key_http, parse_barcode
 
 try:
-    from .gpgmh import fingerprint_from_keydata
+    from .gpgmeh import fingerprint_from_keydata
 except ImportError:
     # FIXME: Remove this conditional
-    from .gpgmh import fingerprint_for_key as fingerprint_from_keydata
+    from .gpgmeh import fingerprint_for_key as fingerprint_from_keydata
 
 from .network.AvahiBrowser import AvahiBrowser
 from .util import mac_verify
@@ -57,7 +57,7 @@ class AvahiKeysignDiscovery(GObject.GObject):
     __gsignals__ = {
         # Gets emitted whenever a new server has been found or has been removed.
         # Is also emitted shortly after an object has been created.
-        str("list-changed"): (GObject.SIGNAL_RUN_LAST, None, (int,)),
+        str("list-changed"): (GObject.SignalFlags.RUN_LAST, None, (int,)),
     }
 
     def __init__(self, *args, **kwargs):

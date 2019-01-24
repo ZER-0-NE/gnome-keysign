@@ -44,7 +44,7 @@ if __name__ == "__main__" and __package__ is None:
     os.sys.path.insert(0, os.path.join(parent_dir, 'monkeysign'))
     __package__ = str('keysign')
 
-from .gpgmh import get_usable_keys, get_public_key_data
+from .gpgmeh import get_usable_keys, get_public_key_data
 from .util import encode_message, decode_message
 
 log = logging.getLogger(__name__)
@@ -135,7 +135,7 @@ class WormholeOffer:
     def stop(self):
         if self.w:
             try:
-                self.w.close()
+                self.w.close().addErrback(log.debug)
             except (TransferError, ServerConnectionError, WrongPasswordError) as error:
                 # These errors should be already handled previously
                 # so here we can safely ignore them

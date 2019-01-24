@@ -21,7 +21,7 @@ if  __name__ == "__main__" and __package__ is None:
     #sys.modules["keysign"] = mod
     __package__ = str('keysign')
 
-from .gpgmh import get_usable_keys
+from .gpgmeh import get_usable_keys
 from .i18n import _
 from .util import fix_infobar
 
@@ -35,7 +35,7 @@ class ListBoxRowWithKey(Gtk.ListBoxRow):
         self.key = key
 
         s = self.format(key)
-        label = Gtk.Label(s, use_markup=True, xalign=0)
+        label = Gtk.Label(label=s, use_markup=True, xalign=0)
         self.add(label)
 
     @staticmethod
@@ -57,7 +57,7 @@ class ListBoxRowWithKey(Gtk.ListBoxRow):
 
     @classmethod
     def format_uid(cls, uid):
-        "Returns a pango string for a gpgmh.UID"
+        "Returns a pango string for a gpgmeh.UID"
         fmt = "{name}\t<i>{email}</i>\t<small>{expiry}</small>"
 
         items = ('name', 'email', 'expiry')
@@ -76,7 +76,7 @@ class ListBoxRowWithKey(Gtk.ListBoxRow):
 
     @classmethod
     def format(cls, key):
-        "Returns a pango string for a gpgmh.Key"
+        "Returns a pango string for a gpgmeh.Key"
         fmt  = "{created} "
         fmt  = "<b>{fingerprint}</b>\n"
         fmt += "\n".join((cls.format_uid(uid) for uid in key.uidslist))
@@ -105,11 +105,11 @@ class KeyListWidget(Gtk.HBox):
     and potentially display a user facing warning. Or not.
     """
     __gsignals__ = {
-        str('key-activated'): (GObject.SIGNAL_RUN_LAST, None,
+        str('key-activated'): (GObject.SignalFlags.RUN_LAST, None,
                                # (ListBoxRowWithKey.__gtype__,)
                                (object,)),
                                # The activated key
-        str('key-selected'): (GObject.SIGNAL_RUN_LAST, None,
+        str('key-selected'): (GObject.SignalFlags.RUN_LAST, None,
                                # (ListBoxRowWithKey.__gtype__,)
                                (object,)),
                                # The selected key
